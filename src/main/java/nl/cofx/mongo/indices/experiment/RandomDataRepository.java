@@ -1,0 +1,16 @@
+package nl.cofx.mongo.indices.experiment;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.mongodb.repository.MongoRepository;
+
+public interface RandomDataRepository extends MongoRepository<RandomData, String> {
+
+    Page<RandomData> findAllByRandomBoolean(boolean value, Pageable page);
+
+    Page<RandomData> findAllByRandomInt(int value, Pageable page);
+
+    Page<RandomData> findAllByRandomIntGreaterThan(int value, Pageable page);
+
+    Page<RandomData> findAllByRandomString(String value, Pageable page);
+}
