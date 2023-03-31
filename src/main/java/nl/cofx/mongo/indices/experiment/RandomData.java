@@ -7,9 +7,9 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 @Builder
+@CompoundIndex(def = "{ randomString: 1, randomInt: 1 }", name = "idx0")
 @Data
 @Document
-@CompoundIndex(def = "{ randomString: 1, randomInt: 1 }", name = "idx0")
 public class RandomData {
 
     @Indexed
