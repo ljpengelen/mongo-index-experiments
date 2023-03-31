@@ -52,6 +52,19 @@ class ExperimentApplicationTest {
         deleteIndexIfExists(INDEX_NAME);
     }
 
+    private void deleteIndexIfExists(String name) {
+        var collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
+
+        var indexes = collection.listIndexes();
+        var indexNames = StreamSupport.stream(indexes.spliterator(), false)
+                .map(document -> document.get("name"))
+                .collect(Collectors.toSet());
+
+        if (indexNames.contains(name)) {
+            collection.dropIndex(name);
+        }
+    }
+
     @Test
     void starts() {
         // Nothing to assert or do.
@@ -136,9 +149,6 @@ class ExperimentApplicationTest {
         indexOps.ensureIndex(indexDefinition);
         stopWatch.stop();
         log.info("Time to create index: {}", stopWatch.getTotalTimeMillis());
-
-        var indexInfo = indexOps.getIndexInfo();
-        log.info("Index info: {}", indexInfo);
     }
 
     @Test
@@ -151,14 +161,18 @@ class ExperimentApplicationTest {
                 .on("randomString", Sort.Direction.ASC)
                 .on("randomInt", Sort.Direction.ASC);
 
+        log.info("Ensuring index");
         indexOps.ensureIndex(indexDefinition);
+        log.info("Ensured index");
         indexOps.ensureIndex(indexDefinition);
+        log.info("Ensured index again");
     }
 
     @Test
-    void createsIndexViaTemplateInBackground() throws InterruptedException {
+    void createsIndexViaTemplateInBackground() throws InterruptedException, ExecutionException {
         var indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
 
+        var completableFuture = new CompletableFuture<Void>();
         var thread = new Thread(() -> {
             log.info("Creating index");
 
@@ -173,33 +187,17 @@ class ExperimentApplicationTest {
             indexOps.ensureIndex(indexDefinition);
             stopWatch.stop();
             log.info("Time to create index: {}", stopWatch.getTotalTimeMillis());
+
+            completableFuture.complete(null);
         });
 
         thread.start();
 
-        for (int i = 0; i < 20; ++i) {
-            var indexInfo = indexOps.getIndexInfo();
-            log.info("Index info: {}", indexInfo);
-
-            Thread.sleep(1000);
-        }
-    }
-
-    private void deleteIndexIfExists(String name) {
-        var collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
-
-        var indexes = collection.listIndexes();
-        var indexNames = StreamSupport.stream(indexes.spliterator(), false)
-                .map(document -> document.get("name"))
-                .collect(Collectors.toSet());
-
-        if (indexNames.contains(name)) {
-            collection.dropIndex(name);
-        }
+        completableFuture.get();
     }
 
     @Test
-    void createsIndexReactively() throws InterruptedException {
+    void createsIndexReactively() throws InterruptedException, ExecutionException {
         var indexOps = reactiveMongoTemplate.indexOps(COLLECTION_NAME);
 
         log.info("Creating index");
@@ -210,17 +208,17 @@ class ExperimentApplicationTest {
                 .on("randomString", Sort.Direction.ASC)
                 .on("randomInt", Sort.Direction.ASC);
 
+        var completableFuture = new CompletableFuture<Void>();
         var stopWatch = new StopWatch();
         stopWatch.start();
         indexOps.ensureIndex(indexDefinition).subscribe(name -> {
             stopWatch.stop();
             log.info("Time to create index {}: {}", name, stopWatch.getTotalTimeMillis());
+
+            completableFuture.complete(null);
         });
 
-        for (int i = 0; i < 20; ++i) {
-            indexOps.getIndexInfo().subscribe(indexInfo -> log.info("Index info: {}", indexInfo));
-            Thread.sleep(1000);
-        }
+        completableFuture.get();
     }
 
     @Test
@@ -233,6 +231,7 @@ class ExperimentApplicationTest {
                 .on("randomString", Sort.Direction.ASC)
                 .on("randomInt", Sort.Direction.ASC);
 
+        log.info("Ensuring index");
         var completableFuture = new CompletableFuture<Void>();
         indexOps.ensureIndex(indexDefinition).subscribe(firstName -> {
             log.info("Ensured index");
@@ -246,9 +245,7 @@ class ExperimentApplicationTest {
     }
 
     @Test
-    void createsIndexViaClient() throws InterruptedException {
-        var indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
-
+    void createsIndexViaClient() {
         var keys = new BsonDocument();
         keys.put("randomInt", new BsonInt32(1));
         keys.put("randomString", new BsonInt32(1));
@@ -259,15 +256,27 @@ class ExperimentApplicationTest {
 
         var stopWatch = new StopWatch();
         stopWatch.start();
+        log.info("Creating index");
         mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME).createIndex(keys, indexOptions);
+        stopWatch.stop();
         log.info("Time to create index: {}", stopWatch.getTotalTimeMillis());
+    }
 
-        for (int i = 0; i < 20; ++i) {
-            var indexInfo = indexOps.getIndexInfo();
-            log.info("Index info: {}", indexInfo);
+    @Test
+    void canCreateExistingIndexViaClient() {
+        var keys = new BsonDocument();
+        keys.put("randomInt", new BsonInt32(1));
+        keys.put("randomString", new BsonInt32(1));
+        keys.put("randomBoolean", new BsonInt32(1));
 
-            Thread.sleep(1000);
-        }
+        var indexOptions = new IndexOptions();
+        indexOptions.name(INDEX_NAME);
+
+        log.info("Creating index");
+        mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME).createIndex(keys, indexOptions);
+        log.info("Created index");
+        mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME).createIndex(keys, indexOptions);
+        log.info("Created index again");
     }
 
     private static RandomData randomData() {
