@@ -50,8 +50,7 @@ The test `createsIndexReactively` uses `ReactiveMongoTemplate` to create an inde
 In this case, the method `ensureIndex` doesn't block.
 
 The test `createsIndexViaClient` uses `MongoClient` to create an index.
-The method `createIndex` also doesn't block.
-Contrary to `ReactiveMongoTemplate`, `MongoClient` doesn't require an additional dependency.
+The method `createIndex` blocks until the index is created.
 
 The tests `findsAllByBoolean`, `findsAllByInt`, `findsAllByIntGreaterThan`, and `findsAllByString` show how indices influence query performance.
 
