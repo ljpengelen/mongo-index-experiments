@@ -217,12 +217,6 @@ class ExperimentApplicationTest {
         mongoClient.getDatabase("test").getCollection("randomData").createIndex(keys, indexOptions);
         log.info("Time to create index: {}", stopWatch.getTotalTimeMillis());
 
-        indexName = "test2";
-        deleteIndexIfExists(indexName);
-        indexOptions.unique(true)
-                .name(indexName);
-        mongoClient.getDatabase("test").getCollection("randomData").createIndex(keys, indexOptions);
-
         for (int i = 0; i < 20; ++i) {
             var indexInfo = indexOps.getIndexInfo();
             log.info("Index info: {}", indexInfo);
