@@ -45,7 +45,6 @@ Adding a new index for an existing collection could lead to long startup times i
 The test `createsIndexViaTemnplate` uses `MongoTemplate` to create an index.
 The behavior is similar to what happens when you let Spring create indices.
 The method `ensureIndex` blocks until the index is created.
-Contrary to what the name and documentation suggest, `ensureIndex` throws an exception if the index already exists.
 
 The test `createsIndexReactively` uses `ReactiveMongoTemplate` to create an index.
 In this case, the method `ensureIndex` doesn't block.
