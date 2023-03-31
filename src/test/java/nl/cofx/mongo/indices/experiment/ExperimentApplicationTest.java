@@ -5,6 +5,8 @@ import com.mongodb.client.model.IndexOptions;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -17,14 +19,21 @@ import org.springframework.util.StopWatch;
 
 import java.security.SecureRandom;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 @Slf4j
 @SpringBootTest
 class ExperimentApplicationTest {
 
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+    private static final String DATABASE_NAME = "test";
+    private static final String COLLECTION_NAME = "randomData";
+    private static final String INDEX_NAME = "testIndex";
 
     @Autowired
     private RandomDataRepository repository;
@@ -38,6 +47,11 @@ class ExperimentApplicationTest {
     @Autowired
     private MongoClient mongoClient;
 
+    @BeforeEach
+    void deleteIndexes() {
+        deleteIndexIfExists(INDEX_NAME);
+    }
+
     @Test
     void starts() {
         // Nothing to assert or do.
@@ -49,6 +63,7 @@ class ExperimentApplicationTest {
     }
 
     @Test
+    @Disabled
     void savesEntities() {
         var batchSize = 100;
         var totalNumberOfEntities = 1_000_000;
@@ -105,16 +120,13 @@ class ExperimentApplicationTest {
     }
 
     @Test
-    void createsIndex() {
-        var indexOps = mongoTemplate.indexOps("randomData");
-
-        var indexName = "test";
-        deleteIndexIfExists(indexName);
+    void createsIndexViaTemplate() {
+        var indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
 
         log.info("Creating index");
 
         var indexDefinition = new Index();
-        indexDefinition.named(indexName)
+        indexDefinition.named(INDEX_NAME)
                 .on("randomBoolean", Sort.Direction.ASC)
                 .on("randomString", Sort.Direction.ASC)
                 .on("randomInt", Sort.Direction.ASC);
@@ -130,17 +142,28 @@ class ExperimentApplicationTest {
     }
 
     @Test
-    void createsIndexInBackground() throws InterruptedException {
-        var indexOps = mongoTemplate.indexOps("randomData");
+    void canEnsureExistingIndexViaTemplate() {
+        var indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
 
-        var indexName = "test";
-        deleteIndexIfExists(indexName);
+        var indexDefinition = new Index();
+        indexDefinition.named(INDEX_NAME)
+                .on("randomBoolean", Sort.Direction.ASC)
+                .on("randomString", Sort.Direction.ASC)
+                .on("randomInt", Sort.Direction.ASC);
+
+        indexOps.ensureIndex(indexDefinition);
+        indexOps.ensureIndex(indexDefinition);
+    }
+
+    @Test
+    void createsIndexViaTemplateInBackground() throws InterruptedException {
+        var indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
 
         var thread = new Thread(() -> {
             log.info("Creating index");
 
             var indexDefinition = new Index();
-            indexDefinition.named(indexName)
+            indexDefinition.named(INDEX_NAME)
                     .on("randomBoolean", Sort.Direction.ASC)
                     .on("randomString", Sort.Direction.ASC)
                     .on("randomInt", Sort.Direction.ASC);
@@ -163,23 +186,26 @@ class ExperimentApplicationTest {
     }
 
     private void deleteIndexIfExists(String name) {
-        var indexOps = mongoTemplate.indexOps("randomData");
-        if (indexOps.getIndexInfo().stream().anyMatch(indexInfo -> indexInfo.getName().equals(name))) {
-            indexOps.dropIndex(name);
+        var collection = mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME);
+
+        var indexes = collection.listIndexes();
+        var indexNames = StreamSupport.stream(indexes.spliterator(), false)
+                .map(document -> document.get("name"))
+                .collect(Collectors.toSet());
+
+        if (indexNames.contains(name)) {
+            collection.dropIndex(name);
         }
     }
 
     @Test
     void createsIndexReactively() throws InterruptedException {
-        var indexOps = reactiveMongoTemplate.indexOps("randomData");
-
-        var indexName = "test";
-        deleteIndexIfExists(indexName);
+        var indexOps = reactiveMongoTemplate.indexOps(COLLECTION_NAME);
 
         log.info("Creating index");
 
         var indexDefinition = new Index();
-        indexDefinition.named(indexName)
+        indexDefinition.named(INDEX_NAME)
                 .on("randomBoolean", Sort.Direction.ASC)
                 .on("randomString", Sort.Direction.ASC)
                 .on("randomInt", Sort.Direction.ASC);
@@ -198,11 +224,30 @@ class ExperimentApplicationTest {
     }
 
     @Test
-    void createsIndexViaClient() throws InterruptedException {
-        var indexOps = mongoTemplate.indexOps("randomData");
+    void canEnsureExistingIndexReactively() throws ExecutionException, InterruptedException {
+        var indexOps = reactiveMongoTemplate.indexOps(COLLECTION_NAME);
 
-        var indexName = "test";
-        deleteIndexIfExists(indexName);
+        var indexDefinition = new Index();
+        indexDefinition.named(INDEX_NAME)
+                .on("randomBoolean", Sort.Direction.ASC)
+                .on("randomString", Sort.Direction.ASC)
+                .on("randomInt", Sort.Direction.ASC);
+
+        var completableFuture = new CompletableFuture<Void>();
+        indexOps.ensureIndex(indexDefinition).subscribe(firstName -> {
+            log.info("Ensured index");
+            indexOps.ensureIndex(indexDefinition).subscribe(secondName -> {
+                log.info("Ensured index again");
+                completableFuture.complete(null);
+            });
+        });
+
+        completableFuture.get();
+    }
+
+    @Test
+    void createsIndexViaClient() throws InterruptedException {
+        var indexOps = mongoTemplate.indexOps(COLLECTION_NAME);
 
         var keys = new BsonDocument();
         keys.put("randomInt", new BsonInt32(1));
@@ -210,11 +255,11 @@ class ExperimentApplicationTest {
         keys.put("randomBoolean", new BsonInt32(1));
 
         var indexOptions = new IndexOptions();
-        indexOptions.name(indexName);
+        indexOptions.name(INDEX_NAME);
 
         var stopWatch = new StopWatch();
         stopWatch.start();
-        mongoClient.getDatabase("test").getCollection("randomData").createIndex(keys, indexOptions);
+        mongoClient.getDatabase(DATABASE_NAME).getCollection(COLLECTION_NAME).createIndex(keys, indexOptions);
         log.info("Time to create index: {}", stopWatch.getTotalTimeMillis());
 
         for (int i = 0; i < 20; ++i) {

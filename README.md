@@ -42,7 +42,7 @@ the Spring application *will* block until the index creation is done.
 Because of this, you should think twice about letting Spring handle index creation automatically.
 Adding a new index for an existing collection could lead to long startup times if the collection is big.
 
-The test `createsIndex` uses `MongoTemplate` to create an index.
+The test `createsIndexViaTemnplate` uses `MongoTemplate` to create an index.
 The behavior is similar to what happens when you let Spring create indices.
 The method `ensureIndex` blocks until the index is created.
 Contrary to what the name and documentation suggest, `ensureIndex` throws an exception if the index already exists.
