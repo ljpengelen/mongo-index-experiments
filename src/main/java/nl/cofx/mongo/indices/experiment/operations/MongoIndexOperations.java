@@ -58,12 +58,13 @@ public class MongoIndexOperations {
     }
 
     public void deleteIndex(MongoIndexSpecification specification) {
-        var collection = getCollection();
+        log.info("Deleting index with specification {}", specification);
 
+        var collection = getCollection();
         var indexes = collection.listIndexes();
         for (var index : indexes) {
             if (indexMatchesSpecification(specification, index)) {
-                collection.dropIndex(index.getString("name"));
+                collection.dropIndex(getName(index));
                 log.info("Deleted index {}", index);
                 return;
             }
@@ -73,14 +74,14 @@ public class MongoIndexOperations {
     }
 
     private boolean indexMatchesSpecification(MongoIndexSpecification specification, Document index) {
-        if (specification.getName() != null && !specification.getName().equals(index.getString("name"))) return false;
+        if (specification.getName() != null && !specification.getName().equals(getName(index))) return false;
 
-        if (specification.isUnique() && !Boolean.TRUE.equals(index.getBoolean("unique"))) return false;
+        if (specification.isUnique() && !isUnique(index)) return false;
 
         var keys = getKeys(specification);
         if (keys == null) return true;
 
-        return equalRespectingInsertionOrder(index.get("key", Document.class).entrySet(), keys.entrySet());
+        return equalRespectingInsertionOrder(getKeys(index).entrySet(), keys.entrySet());
     }
 
     private boolean equalRespectingInsertionOrder(Set<Map.Entry<String, Object>> firstEntries,
@@ -92,5 +93,41 @@ public class MongoIndexOperations {
         }
 
         return !firstIterator.hasNext() && !secondIterator.hasNext();
+    }
+
+    public MongoIndexSpecification findIndex(MongoIndexSpecification specification) {
+        log.info("Searching index with specification {}", specification);
+
+        var indexes = getCollection().listIndexes();
+        for (var index : indexes) {
+            if (indexMatchesSpecification(specification, index)) {
+                log.info("Found index {}", index);
+                return toSpecification(index);
+            }
+        }
+
+        log.info("No index found matching specification {}", specification);
+
+        return null;
+    }
+
+    private MongoIndexSpecification toSpecification(Document index) {
+        return MongoIndexSpecification.builder()
+                .name(getName(index))
+                .definition(getKeys(index).toJson())
+                .unique(isUnique(index))
+                .build();
+    }
+
+    private static Document getKeys(Document index) {
+        return index.get("key", Document.class);
+    }
+
+    private static boolean isUnique(Document index) {
+        return Boolean.TRUE.equals(index.getBoolean("unique"));
+    }
+
+    private static String getName(Document index) {
+        return index.getString("name");
     }
 }

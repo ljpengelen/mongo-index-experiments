@@ -31,8 +31,20 @@ public class RandomDataIndexCreator {
     public void startIndexCreation() {
         new Thread(() -> {
             createIndexes();
+            findIndexes();
             deleteIndexes();
         }).start();
+    }
+
+    private void findIndexes() {
+        log.info("Found index: {}", mongoIndexOperations.findIndex(MONGO_INDEX_SPECIFICATION_1));
+        log.info("Found index: {}", mongoIndexOperations.findIndex(MONGO_INDEX_SPECIFICATION_2));
+        log.info("Found index: {}", mongoIndexOperations.findIndex(MongoIndexSpecification.builder()
+                .name("randomString")
+                .build()));
+        log.info("Found index: {}", mongoIndexOperations.findIndex(MongoIndexSpecification.builder()
+                .unique(true)
+                .build()));
     }
 
     private void createIndexes() {
