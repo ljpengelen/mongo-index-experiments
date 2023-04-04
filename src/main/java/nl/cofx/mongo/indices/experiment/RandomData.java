@@ -6,6 +6,9 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+/**
+ * See {@link RandomDataIndexCreator} for additional ways to handle indexes for this entity.
+ */
 @Builder
 @CompoundIndex(def = "{ randomString: 1, randomInt: 1 }", name = "idx0")
 @Data
