@@ -106,7 +106,7 @@ class ExperimentApplicationTest {
     void findsAllByInt() {
         var stopWatch = new StopWatch();
         stopWatch.start();
-        var randomData = repository.findAllByRandomInt(241650809, Pageable.ofSize(10));
+        var randomData = repository.findAllByRandomLong(241650809, Pageable.ofSize(10));
         log.info("Elements in page: {}", randomData.getContent().size());
         stopWatch.stop();
         log.info("Milliseconds spent finding by int: {}", stopWatch.getTotalTimeMillis());
@@ -116,7 +116,7 @@ class ExperimentApplicationTest {
     void findsAllByIntGreaterThan() {
         var stopWatch = new StopWatch();
         stopWatch.start();
-        var randomData = repository.findAllByRandomIntGreaterThan(0, Pageable.ofSize(10));
+        var randomData = repository.findAllByRandomLongGreaterThan(0, Pageable.ofSize(10));
         log.info("Elements in page: {}", randomData.getContent().size());
         stopWatch.stop();
         log.info("Milliseconds spent finding by int greater than: {}", stopWatch.getTotalTimeMillis());
@@ -142,7 +142,7 @@ class ExperimentApplicationTest {
         indexDefinition.named(INDEX_NAME)
                 .on("randomBoolean", Sort.Direction.ASC)
                 .on("randomString", Sort.Direction.ASC)
-                .on("randomInt", Sort.Direction.ASC);
+                .on("randomLong", Sort.Direction.ASC);
 
         var stopWatch = new StopWatch();
         stopWatch.start();
@@ -159,7 +159,7 @@ class ExperimentApplicationTest {
         indexDefinition.named(INDEX_NAME)
                 .on("randomBoolean", Sort.Direction.ASC)
                 .on("randomString", Sort.Direction.ASC)
-                .on("randomInt", Sort.Direction.ASC);
+                .on("randomLong", Sort.Direction.ASC);
 
         log.info("Ensuring index");
         indexOps.ensureIndex(indexDefinition);
@@ -180,7 +180,7 @@ class ExperimentApplicationTest {
             indexDefinition.named(INDEX_NAME)
                     .on("randomBoolean", Sort.Direction.ASC)
                     .on("randomString", Sort.Direction.ASC)
-                    .on("randomInt", Sort.Direction.ASC);
+                    .on("randomLong", Sort.Direction.ASC);
 
             var stopWatch = new StopWatch();
             stopWatch.start();
@@ -206,7 +206,7 @@ class ExperimentApplicationTest {
         indexDefinition.named(INDEX_NAME)
                 .on("randomBoolean", Sort.Direction.ASC)
                 .on("randomString", Sort.Direction.ASC)
-                .on("randomInt", Sort.Direction.ASC);
+                .on("randomLong", Sort.Direction.ASC);
 
         var completableFuture = new CompletableFuture<Void>();
         var stopWatch = new StopWatch();
@@ -229,7 +229,7 @@ class ExperimentApplicationTest {
         indexDefinition.named(INDEX_NAME)
                 .on("randomBoolean", Sort.Direction.ASC)
                 .on("randomString", Sort.Direction.ASC)
-                .on("randomInt", Sort.Direction.ASC);
+                .on("randomLong", Sort.Direction.ASC);
 
         log.info("Ensuring index");
         var completableFuture = new CompletableFuture<Void>();
@@ -247,7 +247,7 @@ class ExperimentApplicationTest {
     @Test
     void createsIndexViaClient() {
         var keys = new BsonDocument();
-        keys.put("randomInt", new BsonInt32(1));
+        keys.put("randomLong", new BsonInt32(1));
         keys.put("randomString", new BsonInt32(1));
         keys.put("randomBoolean", new BsonInt32(1));
 
@@ -265,7 +265,7 @@ class ExperimentApplicationTest {
     @Test
     void canCreateExistingIndexViaClient() {
         var keys = new BsonDocument();
-        keys.put("randomInt", new BsonInt32(1));
+        keys.put("randomLong", new BsonInt32(1));
         keys.put("randomString", new BsonInt32(1));
         keys.put("randomBoolean", new BsonInt32(1));
 
@@ -282,7 +282,7 @@ class ExperimentApplicationTest {
     private static RandomData randomData() {
         return RandomData.builder()
                 .randomString(randomString())
-                .randomInt(randomInt())
+                .randomLong(randomLong())
                 .randomBoolean(randomBoolean())
                 .build();
     }
@@ -295,7 +295,7 @@ class ExperimentApplicationTest {
         return UUID.randomUUID().toString();
     }
 
-    private static int randomInt() {
-        return SECURE_RANDOM.nextInt();
+    private static long randomLong() {
+        return SECURE_RANDOM.nextLong();
     }
 }

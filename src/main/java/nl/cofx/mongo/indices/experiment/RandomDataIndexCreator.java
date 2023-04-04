@@ -14,10 +14,10 @@ public class RandomDataIndexCreator {
     private static final String COLLECTION_NAME = "randomData";
     private static final String DATABASE_NAME = "test";
     private static final MongoIndexSpecification MONGO_INDEX_SPECIFICATION_1 = MongoIndexSpecification.builder()
-            .definition("{ randomBoolean: 1, randomInt: 1 }")
+            .definition("{ randomBoolean: 1, randomLong: 1 }")
             .build();
     private static final MongoIndexSpecification MONGO_INDEX_SPECIFICATION_2 = MongoIndexSpecification.builder()
-            .definition("{ randomInt: 1, randomBoolean: 1 }")
+            .definition("{ randomLong: 1, randomBoolean: 1 }")
             .unique(true)
             .build();
 
