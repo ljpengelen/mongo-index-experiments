@@ -40,6 +40,26 @@ public class MongoIndexOperations {
         }
     }
 
+    /**
+     * If an index that matches the given specification already exists,
+     * regardless of its name, do nothing.
+     * <p>
+     * Otherwise, create the index matching the specification.
+     */
+    public void createIndexWithPreferredName(MongoIndexSpecification specification) {
+        var specificationWithoutName = specification.toBuilder()
+                .name(null)
+                .build();
+
+        var existingIndex = findIndex(specificationWithoutName);
+        if (existingIndex != null) {
+            log.info("Index matching specification already exists: {}", existingIndex);
+            return;
+        }
+
+        createIndex(specification);
+    }
+
     private static IndexOptions getIndexOptions(MongoIndexSpecification specification) {
         return new IndexOptions()
                 .name(specification.getName())
