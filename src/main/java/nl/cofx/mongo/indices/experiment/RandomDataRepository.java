@@ -13,4 +13,8 @@ public interface RandomDataRepository extends MongoRepository<RandomData, String
     Page<RandomData> findAllByRandomLongGreaterThan(long value, Pageable page);
 
     Page<RandomData> findAllByRandomString(String value, Pageable page);
+
+    RandomData findByRandomStringAndRandomLongAndRandomBoolean(String randomString, long randomLong, boolean randomBoolean);
+
+    RandomData findByRandomStringAndRandomLong(String randomString, long randomLong);
 }
